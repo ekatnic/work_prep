@@ -110,3 +110,108 @@ histo <- ggplot(simple_table, aes(x=values)) +
   theme(plot.title = element_text(hjust = 0.5))
 
 # E. Probability Theory
+# Unsure how to run completely in R, struggling to find information online
+# Total umber of outcomes of sample space: (10 choose 3) 
+possible_outcomes <- choose(10, 3)
+# Each outcome in sample space holds an equally likely probability of being filled
+# 8 outcomes where there are 3 consecutive empty spots
+8 / possible_outcomes
+
+
+
+# F. Sampling Theory
+library("PracTools")
+output <- strAlloc(n.tot = 36, Nh = c(10000,10000), Sh = c(10.27, 6.67), alloc = "neyman")
+num_boys <- output$nh[1]
+
+# G. Statistical Distributions
+#   a)
+#     i)
+pnorm(25, mean = 25.8, sd = .5, lower.tail = TRUE)
+#     ii)
+pnorm(26.5, mean = 25.8, sd = .5, lower.tail=TRUE) - 
+  pnorm(25.5, mean = 25.8, sd = .5, lower.tail=TRUE)
+
+# H. Plots/Charts – Using R
+options(scipen=10000)
+#   a) I was unsure of how to distinguish and label cities due to the high volume of cities, so I chose to remove the legend
+#      entirely. Labeling each involved excessive overlap and showing a color legend took up extreme space. 
+grouped_data <- txhousing %>% group_by(city, year) %>% summarise(sum = sum(volume, na.rm = TRUE))
+ggplot(data=grouped_data, aes(x=year, y=sum, group=city, color = city)) +
+  scale_y_continuous(labels = scales::comma) + geom_line() + xlab("Date") +
+  ylab("Volume (Dollars)") +ggtitle("Texas Annual Volume by City") +
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5)) 
+  
+
+#   b)
+ggplot(data = grouped_data, aes(x = year, y = sum,fill=city)) +
+  geom_bar(stat='identity', color = "white", size = .1) +
+  scale_x_continuous(breaks = seq(min(grouped_data$year), max(grouped_data$year)))+ 
+  scale_y_continuous(labels = scales::comma, expand = c(0, 0)) + coord_flip() + ylab("Volume (Dollars)") + 
+  ggtitle("Texas Annual Volume by City Bar") +
+  xlab("Year") + theme(legend.position = "none", plot.title = element_text(hjust = 0.5))
+
+#   c)
+#     i)
+library(zoo)
+top_cities <- txhousing %>% group_by(city) %>% summarise(sum = sum(volume, na.rm = TRUE)) %>% 
+                                                           top_n(5, sum)
+top_cities_monthly <- txhousing %>% group_by(city) %>% filter(city %in% top_cities$city)
+top_cities_monthly$chrono_month <- as.yearmon(with(top_cities_monthly, paste(year, month, sep="-")), "%Y-%m")
+
+ggplot(data=top_cities_monthly, aes(x=chrono_month, y=volume, group=city, color = city)) +
+  scale_y_continuous(labels = scales::comma) + geom_line() +
+  scale_x_continuous(breaks = seq(2000,2015,2)) +
+  xlab("Date") + ylab("Volume (dollars)") + 
+  ggtitle("Top 5 Texas City Monthly Volume") + 
+  theme(plot.title = element_text(hjust = 0.5))
+  
+#     ii)
+ggplot(data=top_cities_monthly, aes(x=chrono_month, y=volume, color = city)) +
+  scale_y_continuous(labels = scales::comma) + geom_line() +
+  scale_x_continuous(breaks = seq(2000,2015,2)) + facet_wrap(~city) + theme(legend.position = "none") +
+  xlab("Date") + ylab("Volume (dollars)") + 
+  ggtitle("Top 5 Texas City Monthly Volume") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+#     iii)
+top_2015 <- top_cities_monthly %>% filter(year==2015) %>% group_by(city) %>% summarise(total_sales = sum(sales))
+july_2015 <- top_cities_monthly %>% filter(year==2015) %>% filter(month==6) 
+ggplot() + geom_point(data =top_2015, aes(city, total_sales, color = "dark green")) +
+  geom_point(data = july_2015, aes(city, sales, color = "purple")) +
+  scale_color_discrete(labels = c("Total 2015 Sales", "July 2015 Sales")) + 
+  xlab("City") + ylab("Total Sales (dollars)") + 
+  ggtitle("Top 5 Texas City 2015 Housing Sales") + 
+  theme(plot.title = element_text(hjust = 0.5))
+  
+#     iv)
+ggplot(top_cities_monthly, aes(x=city, y=sales)) + 
+  xlab("City") + ylab("Number of Sales") + 
+  ggtitle("Top 5 Texas City Monthly Sales") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_boxplot()
+
+#     v)
+library(reshape2)
+city_means <- top_cities_monthly %>% summarise(sales_mean = mean(sales), volume_mean = mean(volume))
+
+ggplot() + geom_point(data= top_cities_monthly, aes(sales, volume, color = city), size=.5) + scale_y_continuous(labels = scales::comma) +
+  geom_point(data=city_means, mapping=aes(x = sales_mean, y = volume_mean, color = city), size = 3, shape = 10, stroke =2) + 
+  geom_point(data=city_means, mapping=aes(x = sales_mean, y = volume_mean), size = 4, shape = 10, color = "black", stroke = .5) +
+  xlab("Number of Sales") + ylab("Volume (dollars)") + 
+  ggtitle("Top 5 Texas City Monthly Housing Sales vs. Volume") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+#  I)
+#     a. null, Ho: There is no significant difference between the mean Verbal SAT scores of first year
+#              psychology majors compared to the population
+#        alternative, Ha: There is a signifcant difference between the mean Verbal SAT scores of first year
+#              psychology majors compared to the population
+#     b. Reject null if p-value < .05
+#     c. μ = 520, σ^2 = σ * σ = 95*95 = 9025, M = 548, N = 36
+#        Z = (M - μ) / √(σ^2 / N)
+#        Z = (548 - 520) / √(9025 / 36)
+#        Z = 28 / 15.83333
+#        Z = 1.76842  => α(.05) =>  p = .07672
+#     d. p = .07672 > .05, fail to reject Ho
+#     e. There is no significant difference between the mean score and the scores of first year psych majors
