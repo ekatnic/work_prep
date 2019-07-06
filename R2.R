@@ -12,11 +12,12 @@ sum5 <- function(num){
   }
 }
 
-# TODO B.Data Management – Using R
+# B.Data Management – Using R
 library(readxl)
 library(dplyr)
 setwd("~/Desktop/work_prep")
 data <- read_excel("data/cars.xlsm")
+data <- na.omit(data)
 
 outlier_detect <- function(column_name){
   column_data <- data[[column_name]]
@@ -26,22 +27,50 @@ outlier_detect <- function(column_name){
   top_cutoff <- q2 + data_iqr*1.5
   bottom_cutoff <- q1 - data_iqr*1.5
   outliers <- column_data[(column_data > top_cutoff | column_data < bottom_cutoff)]
-  print(paste("Outliers:"))
+  print(paste(column_name, "Outliers:"))
   print(outliers)
   return(outliers)
 }
 
-replace_outliers <- function(column_name){
-  outliers <- outlier_detect(column_name)
-  outlier_frame <- data[data[[column_name]] %in% outliers,]
-  View(outlier_frame)
-  if(TRUE){
-    data[data[[column_name]] %in% outliers, column_name] <- mean(data[[column_name]])
+replace_outliers <- function(column_names){
+  for(column_name in column_names){
+    if(is.numeric(data[[column_name]])){ 
+      outliers <- outlier_detect(column_name)
+      outlier_frame <- data[data[[column_name]] %in% outliers,]
+      print.data.frame(outlier_frame)
+      data[data[[column_name]] %in% outliers, column_name] <- mean(data[[column_name]])
+    } else { # unsure of how to calculate outliers of categorical 
+      # Detect outliers of categorical data
+    }
   }
   return(data)
 }
+data <- replace_outliers(names(data))
 
-data <- replace_outliers("V10")
+#   3)
+#     To be frank, I am not sure what advantage creating dummies has over using R's default factors. 
+#     I read that factors are internally coded as dummy variables in R, so I am not entirely sure
+#     of the differences. One of the few advtanges that I can imagine is that you could rename
+#     dummy columns to whatever you wish, where you are a bit trapped in naming using default factors.
+#     I will continue to research this. 
+
+#     A dummy variable trap is when variables are multicollinear, yet separate variables are created
+#     for each category regardless. There is essentially a duplicate category, when in reality there should
+#     be some baseline that you do not manually add in the model. I.E. introducing both a male and female
+#     column to represent gender would be problematic, as these are considered mutually exclusive and are
+#     multicollinear. Instead, a single "female" category could be implemented with either a 0 to indicate
+#     that the record is a man or a 1 to represent that the record is a female. Only n-1 variables are required
+#     for a variable with n options.
+#     
+#     We use dummy variables on nominal data most often to incorporate them into regression analysis.
+#     Consider a dataset with information about recent graduates, their majors, and their starting salaries.
+#     If want to quantify the difference in salary between business and art majors, we cannot simply assign
+#     these major names as business = 1, art = 2, etc., for they do not have a comparable relationship where
+#     business is less than art and art is twice as much as business. Regression analysis depends on a directional
+#     relationship of variables, and this is ignored with this crude technique. Instead, we can asign each of these majors
+#     as either a 0 or a 1 to indicate its presence and measure the presence of that variable in studying it's
+#     relationship to salary. In this way, each option to this nominal variable has an ordered relationship
+#     where 0 represents the absence of that option and 1 represents it's presence. 
 
 # C. User Defined Functions – Using R
 #   4)
@@ -51,7 +80,7 @@ math_func <- function(vector){
 math_func(c(1,2,3,4,5))
 
 #   5)
-#   GIVEN DATA DIFFERS IN NUMBER OF ROWS, ADDED NA TO END OF AGE COLUMN
+#   PROVIDED DATA DIFFERS IN NUMBER OF ROWS, ADDED NA TO END OF AGE COLUMN
 sampledata <- data.frame(Marks = c(80,75,85,65,55,NA,NA,89,NA), 
                          age =   c(21,23,27,25,26,26,23,NA, NA) )
 #     a)
@@ -78,7 +107,7 @@ data_table <- table(interval)
 data_table <- data_table %>% transform(Rel_Freq = prop.table(Freq), Per_Freq = prop.table(Freq) * 100, Cum_Freq = cumsum(Freq))
 write.csv(data_table, file = "~/Desktop/data2.csv")
 #     b)
-#TODO: import photo
+#       ExcelHisto2.png attached
 #     c)
 #       The histogram appears to be moderately skewed right due to some extreme values on the upper end.
 #     d)
@@ -97,34 +126,31 @@ outliers <- data[(data > top_cutoff | data < bottom_cutoff)]
 #       A logarithmic transformation would likely be most appropriate, as there are not many zeroes.
 #       Using log(x+1) would be appropriate if any zeroes are in the dataset. 
 # 7)
-values <- data.frame(data = c(23.2,24.4,25.2,26.2,28.1,29.3,30.3,35.1,36.1, 36.2, 
+values <- c(23.2,24.4,25.2,26.2,28.1,29.3,30.3,35.1,36.1, 36.2, 
                                 40.2, 42.2, 43.1, 44.2, 46.4, 46.3, 46.1, 48.1, 48.1,
                                 48.2, NA, NA, 48.2, 49.2, 49.3, 49.3, 50.2, 53.2, 53.1,
-                                70.1, 71.2, 85.1), 
-                         Freq =   c(0, 4, 9, 7, 1, 2, 6, 4, 9, 5, 9, 8, 1, 0, 4, 6, 4,
-                                    9, 2, 6, NA, NA, 5, 0, 2, 6, 6, 8, 9, 4, 2, 0) )
+                                70.1, 71.2, 85.1)
 values <- na.omit(values)
-values_range <- range(values$data) 
-by <- 4
+values_range <- range(values) 
+by <- 6
 value_breaks <- seq(floor(values_range[1]), ceiling(values_range[2]) + by - ceiling(values_range[2]) %% by,
-                    by=by) 
-value_intervals <- cut(values$data, value_breaks, right=FALSE)
-values$interval <- value_intervals
-values <- values %>% group_by(interval) %>% summarise(total_freq = sum(Freq))
-values <- values %>% transform(Rel_Freq = prop.table(total_freq), Cum_Freq = cumsum(total_freq))
-values$Percent_Frequency <- values$Rel_Freq * 100
+                     by=by) 
+value_intervals <- cut(values, value_breaks, right=FALSE)
+value_table <- table(value_intervals)
+value_table <- value_table %>% transform(Rel_Freq = prop.table(Freq), Cum_Freq = cumsum(Freq))
+value_table$Percent_Frequency <- value_table$Rel_Freq * 100
 # MIDPOINTS FUNCTION CODE FROM https://www.r-bloggers.com/finding-the-midpoint-when-creating-intervals/
 midpoints <- function(x, dp=2){
   lower <- as.numeric(gsub(",.*","",gsub("\\(|\\[|\\)|\\]","", x)))
   upper <- as.numeric(gsub(".*,","",gsub("\\(|\\[|\\)|\\]","", x)))
   return(round(lower+(upper-lower)/2, dp))
 }
-values$Midpoint <- sort(midpoints(values$interval))
-values <- values[,c(1, 6, 2, 3, 5, 4)]
-colnames(values) <- c("Interval", "Midpoint", "Absolute Frequency", "Relative Frequency",
+value_table$Midpoint <- sort(midpoints(value_table$value_intervals))
+value_table <- value_table[,c(1, 6, 2, 3, 5, 4)]
+colnames(value_table) <- c("Interval", "Midpoint", "Absolute Frequency", "Relative Frequency",
                            "Percent Frequency", "Cumulative Frequency")
 
-# TODO b)
+#    b)
 mean <- mean(values)
 median <- median(values)
 quartile1 <- quantile(values, 0.25)
@@ -141,9 +167,27 @@ histo <- ggplot(simple_table, aes(x=values)) +
   geom_histogram(color="black", fill="white", binwidth = 1) + ggtitle("Value Histogram") +
   theme(plot.title = element_text(hjust = 0.5))
 
-# E.
+# E. Probability Theory
+# Probability that they are in semis - P(S)
+# Both in group 1/2 but not immediate matchup P(G1)
+# Both in group 3/4 but not immediate matchup P(G2)
+# P(G1) = 1/2 * 2/7 (both in groups 1/2, diff matchup) = 1/7
+# P(G2) = 1/2 * 2/7 (both in groups 3/4, diff matchup) = 1/7
+# P(S | G1) requires both players to win .5 matchups
+# P(S | G1) = 1/7 * 1/2 * 1/2 = 1/28
+# +
+# P(S | G2) = 1/7 * 1/2 * 1/2 = 1/28
+# = 2/28 = 1/14
 
-# F. 
+# F. Sampling Theory
+# z(95%) = 1.96
+# σ = 2.5
+# m = 1
+# m = z∗σ/√n
+# n = (z∗σ/m)^2
+# n = (1.96 * 2.5 / 1) ^2 =
+ceiling(1.96*2.5 / 1)^2
+# = 25 people
 
 # G. Statistical Distributions – I and II
 #   This problem follows a binomial distribution where n = 10, p = .1
@@ -221,4 +265,30 @@ ggplot() + geom_point(data= top_cities_monthly, aes(sales, volume, color = city)
   theme(plot.title = element_text(hjust = 0.5))
 
 # I. Testing Of Hypothesis
+#   a)
+#     i.  H0 : b2 = 0 ; H1 : b2 < 0
+#         t = (3.1 - 0)/1.70 = 1.824
+#         Reject if t < -1.66
+#         Accept null hypothesis
 
+#     ii. H0 : b2 = 0 ; H1 : b2 ≠ 0
+#         t = (3.1 - 0)/1.70 = 1.824
+#         Reject if |t| > 1.99
+#         Accept null hypothesis
+#
+#     iii. H0 : b2 = 0 ; H1 : b2 > 0
+#         t = (3.1 - 0)/1.70 = 1.824
+#         Reject if t > 1.66
+#         Reject null hypothesis
+#
+#     iv. H0 : b2 = 0 ; H1 : b2 ≠ 1
+#         t = (3.1 - 1)/1.70 = 1.235
+#         Reject if |t| > 1.99
+#         Accept null hypothesis
+#   b)
+#     iii. p ~ .035735 SMALLEST (also only one to reject null)
+
+#   c) b2 +- t * SE
+#     3.1 +- 1.99 * 1.7
+#     3.1 +- 3.383
+#     [-0.283, 6.483]

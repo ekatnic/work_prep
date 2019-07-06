@@ -13,9 +13,97 @@ for(i in 1:nrow(d)) {
 }
 
 # B. Data Management – Using R
-Manager <- function(n){
-  
+library("e1071")
+library(readxl)
+library(dplyr)
+setwd("~/Desktop/work_prep")
+data <- read_excel("data/cars.xlsm")
+
+create_norm_dist_skew <- function(){
+  x <- seq(0, 10, length=1000)
+  y <- dnorm(x, mean=5, sd=2)
+  return(skewness(y))
 }
+
+
+create_trans_frame <- function(column_data, norm_skew){
+  cube <- skewness(column_data^3)
+  square <- skewness(column_data^2)
+  identity <- skewness(column_data)
+  square_root <- skewness(column_data^(1/2))
+  cube_root <- skewness(column_data^(1/3))
+  logarithmic <- skewness(log(column_data))
+  recip_root <- skewness(-column_data^(-1/2))
+  recip <- skewness(-column_data^(-1))
+  recip_square <- skewness(-column_data^(-2))
+  trans_type <- c("cube", "square", "identity","square_root", "cube_root",
+                  "logarithmic", "recip_root", "recip", "recip_square")
+  skew_value <- c(cube, square, identity, square_root, cube_root, logarithmic, 
+                  recip_root, recip, recip_square)
+  skew_diff <- abs((abs(skew_value) - abs(norm_skew)))
+  trans_frame <- data.frame(trans_type, skew_value, skew_diff)
+  return(trans_frame)
+}
+
+transform <- function(column_names){
+  norm_skew <- create_norm_dist_skew()
+  for(column_name in column_names){
+    column_data <- data[[column_name]]
+    data_table <- table(column_data)
+    print(paste0(column_name, ":"))
+    data_table
+    data_skew <- skewness(column_data)
+    print(paste("Skewness:", data_skew))
+    # Unsure how to test significant difference in skewness,
+    # however, skewness values of over .5 are typically considered 
+    # moderately skew
+    if(data_skew > .5){
+      trans_frame <- create_trans_frame(column_data, norm_skew)
+      print.data.frame(trans_frame)
+      best_trans <- trans_frame %>% filter(skew_diff == min(trans_frame$skew_diff)) %>% 
+        dplyr::select(trans_type)
+      print(paste("Performing", best_trans$trans_type, "transformation:"))
+      transformed_data <-  transform_data_chart(best_trans, column_data)
+      print(head(transformed_data))
+      print(paste("New Skewness:", skewness(transformed_data$trans_data)))
+    }
+  }
+}
+
+transform_data_chart <- function(trans_type, data){
+  transformed_data <- data.frame("orig_data" = data)
+  if(trans_type == "cube"){
+    data = data^3
+  } else if(trans_type == "square"){
+    data = data^2
+  } else if(trans_type == "square_root"){
+    data = data^(1/2)
+  } else if(trans_type == "logarithmic"){
+    data = log(data)
+  } else if(trans_type == "recip_root"){
+    data = data^(-1/2)
+  }else if(trans_type == "recip"){
+    data = -data^(-1)
+  }else if(trans_type == "recip_square"){ 
+    data = -data^(-2)
+  }
+  transformed_data$trans_data <- data
+  return(transformed_data)
+}
+
+transform(names(dplyr::select_if(data,is.numeric)))
+
+#   3) Box-Cox
+#     Certain statistical tests like chi-squared require a normal distribution. 
+#     The Box-Cox transformation can transform non-normal data into normal shape. This allows you to use these 
+#     normality-required tests  on data which typically would not be applicable for these tests. Skewed distributions are particularly
+#     effected by this.
+#     If the formula was simply (y^λ - 1) / λ, a lambda value of zero would lead to the indeterminate form 0/0
+#     y^0 - 1 / 0  == 1 - 1  / 0  == 0 / 0
+#     However, alternatively, using L'Hôpital's function, we can instead treat (y^λ - 1) / λ as 
+#     simply ln(y). Intuitively, it would also not make sense for all Y's to be transformed to Y^0, as that would
+#     transform every Y value in the sample to a value of 1.
+
 
 # C. User Defined Functions – Using R
 #    4)
@@ -53,7 +141,7 @@ data_table <- table(interval)
 data_table <- data_table %>% transform(Rel_Freq = prop.table(Freq), Per_Freq = prop.table(Freq) * 100, Cum_Freq = cumsum(Freq))
 write.csv(data_table, file = "~/Desktop/data2.csv")
   # b)
-  #TODO: import photo
+  #    ExcelHisto1.png attached
   # c)
   #    The histogram to indicates an approximately symmetric, bell-shaped distribution, as the majority
   #    of values fall between the 40-45 range, although there is a slightly longer left tail, indicating
