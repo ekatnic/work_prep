@@ -11,6 +11,7 @@ sum5 <- function(num){
     print(sum)
   }
 }
+sum5(10)
 
 # B.Data Management – Using R
 library(readxl)
@@ -97,6 +98,9 @@ sampledata <- apply(sampledata, 2, impute_data)
 #     a)
 library(MASS)
 library(dplyr)
+# Unsure what the numbers under the data are -- emailed Prakash to confirm,
+# but assumed that these are not important. initially thought they were
+# frequencies but unsure
 data <- c(23.20, 24.44, 25.29, 26.27, 28.11, 29.32, 30.36, 35.14, 36.19, 36.25,
           40.29, 42.27, 43.11, 44.20, 46.44, 46.36, 46.14, 48.19, 48.12, 48.26, 
           48.25, 49.20, 49.32, 49.36, 50.26, 53.28, 53.19, 70.14, 71.22, 85.10)
@@ -110,7 +114,8 @@ write.csv(data_table, file = "~/Desktop/data2.csv")
 #       ExcelHisto2.png attached
 #     c)
 #       The histogram appears to be moderately skewed right due to some extreme values on the upper end.
-#     d)
+#     
+#     d) Unsure what the numbers next to the question are. Wasn't sure if these are to be added to the dataset.
 data_sd <- sd(data)
 data_iqr <- IQR(data) 
 #     e)

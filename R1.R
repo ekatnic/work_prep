@@ -117,7 +117,7 @@ x[!is.element(x,y)]
 #     a)
 data_try <- data.frame(salary = c(20000,30000,50000,40000,60000,NA,-
                                        4000,25000),
-                          age = c(21,23,27,25,26,26,23,NA) )
+                          age = c(21,23,27,25,26,26,23,NA))
 
 impute_data <- function(column){
   replace(column, which(column < 0 | is.na(column)), median(column, na.rm=TRUE))
@@ -146,10 +146,10 @@ write.csv(data_table, file = "~/Desktop/data2.csv")
   #    The histogram to indicates an approximately symmetric, bell-shaped distribution, as the majority
   #    of values fall between the 40-45 range, although there is a slightly longer left tail, indicating
   #    a very minor left skew.
-  # d)
+  # d) Unsure what the numbers next to the question are. Wasn't sure if these are to be added to the dataset.
 data_sd <- sd(data)
 data_iqr <- IQR(data)
-  # e)
+  # e) 
 q1 <- quantile(data, .25)
 q2 <- quantile(data, .75)
 top_cutoff <- q2 + data_iqr*1.5
